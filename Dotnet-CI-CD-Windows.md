@@ -68,38 +68,96 @@ Also catch publish directory or artifact that it generates by choosing task publ
  - So my build artifact is store for CD
 
  ![](__assests__/snap14.png)
+### script of build pipeline
 
-
- ```
+ ```  
  
 trigger:
 - master
 
 pool:
-  vmImage: ubuntu-latest
-
-variables:
-  buildConfiguration: 'Release'
+  vmImage: 'windows-latest'
 
 steps:
 - script: dotnet restore
-  displayName: 'Restore NuGet packages'
-- script: dotnet build --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+  displayName: Restoring-Nuget-Packages
+- script: dotnet build
+  displayName: Building-Dotnet-project
 
-- task: PublishBuildArtifacts@1
+- task: PublishBuildArtifacts@1 # It is use the get the output or artifact that is generated during build process in our case during dotnet build  
   inputs:
-      PathtoPublish: '/home/vsts/work/1/s/bin/Release/net6.0/'
-      ArtifactName: 'drop'
-      publishLocation: 'Container'
-
-
+    PathtoPublish: '$(Build.SourcesDirectory)/bin/Debug/net6.0/' # The path of the build folder you will get from the output of dotnet build   
+    ArtifactName: 'NewRestartArtifact'
+    publishLocation: 'container' 
 
 
 ```
 
+### script of release pipeline
 
-#### Steps to create CD pipeline for Asp Dotnet Application
+```
+
+trigger:
+- none
+
+resources:
+ pipelines:
+     - pipeline: 'Buildpipeline' # Setting Alias name for build pipeline
+       project: 'NEWRESTART'     # Project Name usually seen on upper left conner
+       source: 'Buildpipeline'   # For release pipeline your source is output of build pipeline or Build pipeline (i.e name of build pipeline)
+       branch: 'main'
+stages:                          # Stages can be used to represent different phases of your deployment process in our case we have to deploy website
+    - stage: DeployWebsite
+      displayName: 'Deploy Website'
+      pool:
+        vmImage: 'windows-latest'#  Specifies the agent pool to be used for jobs within this stage
+
+      jobs:                      # The list of jobs that will run as part of this stage i,e DeployWebsite
+          - deployment: DeployWebsite
+            displayName: 'Deploy Website'
+            environment: 'NEWRESTARTENVIRONMENT.Vm-Dotnet' 
+            strategy:            # Defines the deployment strategy for the job
+             runOnce:            # Specifies that the deployment job should run once
+                 deploy:         # Indicates that this is a deployment step
+                     steps:      # Defines the list of steps that should be executed during the deployment
+                         - checkout: none
+                         - download: 'Buildpipeline' # Downloads an artifact from the pipeline i.e Buildpipeline which is alias name set in resources
+                           name: 'DownloadBuildArtifact'
+                           displayName: 'Download Build Artifact'
+                           artifact: 'NewRestartArtifact'   # Specifies the name of the artifact to download
+                         - script: echo  NewRestartArtifact
+                         - task: IISWebAppManagementOnMachineGroup@0     # This task says first the IIS server will stop in remote windows server
+                           name: 'StopIIS'
+                           displayName: 'Stop IIS Website'
+                           inputs:
+                             IISDeploymentType: 'IISWebsite'
+                             ActionIISWebsite: 'StopWebsite'
+                             StartStopWebsiteName: 'DemoAzureProject'
+                         - script: echo $(System.DefaultWorkingDirectory)/_Buildpipeline/NewRestartArtifact   
+                         - task: IISWebAppDeploymentOnMachineGroup@0     # This task says That there will be deployment of your build artifact to remote windows server
+                           name: 'DeployIIS'
+                           displayName: 'Deploy IIS Website'
+                           inputs:
+                             WebSiteName: 'DemoAzureProject'             # Existing Website name on windows server and your artifact will be store or deploy in the physical path or directory of this particular website name
+                             Package: '\azagent\A7\_work\1/Buildpipeline' # Your build artifact will be download on this particular path and you can see output of Download Build Artifact for this
+                             TakeAppOfflineFlag: true
+                          
+                         - task: IISWebAppManagementOnMachineGroup@0     # Starting of Website
+                           name: 'StartIIS'
+                           displayName: 'Start IIS Website'
+                           inputs:
+                             IISDeploymentType: 'IISWebsite'
+                             ActionIISWebsite: 'StartWebsite'
+                             StartStopWebsiteName: 'DemoAzureProject'
+                         
+                            
+```                            
+
+- video of release pipeline
+[Steps of release dotnet pipeline on iis server](https://www.youtube.com/watch?v=L_bou0a8mH8&t=745s)
+
+
+#### Steps to create CD pipeline (GUI) for Asp Dotnet Application
 
 - Click on Release > Add an Artifact > Build as Source Type 
 ### Imp Drop Down and Tab
@@ -123,7 +181,7 @@ Above is the script should run on the windows powershell cmd
 
 [Watch the video for Deployment group in windows server from 12 min onwards](https://www.youtube.com/watch?v=BpCwQp-ABcM&t=473s)
 
-- After running script on windows power Shell Deployments groups Targets Shows healthy
+- After running script on windows power Shell Deployments groups Targets Shows healthy,Or you can use Environments Tab on Azure devops portal and follow same step as Deployments group..I have you used Environments in writing Yaml for Release pipeline to deploy Build artifact on remote windows IIS server.
 
 ![](__assests__/snap18.png)
 
