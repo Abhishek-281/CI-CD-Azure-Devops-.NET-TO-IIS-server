@@ -97,10 +97,10 @@ steps:
 
 ```
 
-trigger:
+trigger:   # You Trigger none because my release pipeline should be Run after Build
 - none
 
-resources:
+resources:   # To link your Release pipeline with Build pipeline
  pipelines:
      - pipeline: 'Buildpipeline' # Setting Alias name for build pipeline
        project: 'NEWRESTART'     # Project Name usually seen on upper left conner
