@@ -115,7 +115,7 @@ stages:                          # Stages can be used to represent different pha
       jobs:                      # The list of jobs that will run as part of this stage i,e DeployWebsite
           - deployment: DeployWebsite
             displayName: 'Deploy Website'
-            environment: 'NEWRESTARTENVIRONMENT.Vm-Dotnet' 
+            environment: 'NEWRESTARTENVIRONMENT.Vm-Dotnet'  #  Vm-Dotnet It is the name of remote windows server where my code artifact will be deployed 
             strategy:            # Defines the deployment strategy for the job
              runOnce:            # Specifies that the deployment job should run once
                  deploy:         # Indicates that this is a deployment step
