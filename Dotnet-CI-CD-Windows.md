@@ -97,7 +97,7 @@ steps:
 
 ```
 
-trigger:   # You Trigger none because my release pipeline should be Run after Build
+trigger:   # used Trigger none because my release pipeline should be Run after Build
 - none
 
 resources:   # To link your Release pipeline with Build pipeline
